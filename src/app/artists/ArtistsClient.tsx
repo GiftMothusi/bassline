@@ -1,14 +1,20 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, Grid3X3, List, Users } from "lucide-react";
+import { Search, Grid3X3, List, Users, Loader2 } from "lucide-react";
 import ArtistCard from "@/components/ui/ArtistCard";
 import Link from "next/link";
 import Image from "next/image";
-import { GENRES } from "@/lib/constants";
+import { GENRES, ARTIST_GENRES, SA_ARTIST_ID_SET } from "@/lib/constants";
 import type { DzArtist } from "@/lib/deezer";
 
 type A = DzArtist & { genre: string };
+
+const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%231a1d35'/%3E%3Ctext x='50%25' y='50%25' font-size='60' text-anchor='middle' dy='.3em' fill='%239CFF00'%3E♪%3C/text%3E%3C/svg%3E";
+
+function getSrc(url: string | undefined | null): string {
+  return url && url.length > 0 ? url : PLACEHOLDER_IMG;
+}
 
 function fmt(n: number) {
   if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
@@ -21,16 +27,59 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
   const [genre, setGenre] = useState("All");
   const [sort, setSort] = useState<"fans" | "name" | "albums">("fans");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [searchResults, setSearchResults] = useState<A[]>([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Live Deezer search when user types 2+ chars
+  const doSearch = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=artist`);
+      const json = await res.json();
+      const results: A[] = (json.data || []).map((a: DzArtist) => ({
+        ...a,
+        genre: ARTIST_GENRES[a.id] || (SA_ARTIST_ID_SET.has(a.id) ? "Other" : "International"),
+      }));
+      setSearchResults(results);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (q.length >= 2) {
+      debounceRef.current = setTimeout(() => doSearch(q), 400);
+    } else {
+      setSearchResults([]);
+    }
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [q, doSearch]);
+
+  // When searching, show search results; otherwise show curated SA artists
+  const isSearchMode = q.length >= 2;
 
   const filtered = useMemo(() => {
-    let list = [...artists];
-    if (q) list = list.filter((a) => a.name.toLowerCase().includes(q.toLowerCase()));
+    const source = isSearchMode ? searchResults : artists;
+    let list = [...source];
+    // If not in search mode, apply local text filter
+    if (!isSearchMode && q) {
+      list = list.filter((a) => a.name.toLowerCase().includes(q.toLowerCase()));
+    }
     if (genre !== "All") list = list.filter((a) => a.genre === genre);
     if (sort === "fans") list.sort((a, b) => b.nb_fan - a.nb_fan);
     else if (sort === "name") list.sort((a, b) => a.name.localeCompare(b.name));
     else if (sort === "albums") list.sort((a, b) => b.nb_album - a.nb_album);
     return list;
-  }, [artists, q, genre, sort]);
+  }, [artists, searchResults, isSearchMode, q, genre, sort]);
 
   return (
     <div className="min-h-screen max-w-7xl mx-auto px-4 lg:px-8 py-8">
@@ -46,10 +95,11 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
         {/* Search */}
         <div className="relative flex-1">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+          {searching && <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-bass-accent animate-spin" />}
           <input
             value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="Search artists..."
-            className="w-full bg-bass-surface border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:border-bass-accent/50 focus:outline-none"
+            placeholder="Search SA artists or discover new ones..."
+            className="w-full bg-bass-surface border border-white/10 rounded-xl pl-11 pr-10 py-3 text-sm text-white placeholder-gray-500 focus:border-bass-accent/50 focus:outline-none"
           />
         </div>
 
@@ -82,26 +132,47 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
         </div>
       </div>
 
-      {/* Results count */}
-      <p className="text-sm text-gray-500 mb-6">{filtered.length} artist{filtered.length !== 1 && "s"} found</p>
+      {/* Results count & mode indicator */}
+      <div className="flex items-center gap-3 mb-6">
+        <p className="text-sm text-gray-500">
+          {filtered.length} artist{filtered.length !== 1 && "s"} found
+        </p>
+        {isSearchMode && (
+          <span className="text-xs text-bass-accent bg-bass-accent/10 px-2 py-0.5 rounded-full">
+            Searching Deezer
+          </span>
+        )}
+      </div>
 
       {/* Grid view */}
       {view === "grid" ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
           {filtered.map((a, i) => (
-            <motion.div key={a.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-              <ArtistCard id={a.id} name={a.name} picture_big={a.picture_big} nb_fan={a.nb_fan} genre={a.genre} />
+            <motion.div key={`grid-${a.id}`} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+              <ArtistCard
+                id={a.id}
+                name={a.name}
+                picture_big={getSrc(a.picture_big)}
+                nb_fan={a.nb_fan}
+                genre={a.genre}
+              />
             </motion.div>
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((a, i) => (
-            <motion.div key={a.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}>
+            <motion.div key={`list-${a.id}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}>
               <Link href={`/artists/${a.id}`} className="flex items-center gap-4 p-4 rounded-xl bg-bass-surface border border-white/5 hover:border-bass-accent/20 transition-all group">
                 <span className="text-sm text-gray-500 w-6 text-right font-mono">{i + 1}</span>
                 <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0">
-                  <Image src={a.picture_medium} alt={a.name} fill className="object-cover" />
+                  <Image
+                    src={getSrc(a.picture_medium)}
+                    alt={`${a.name} profile`}
+                    fill
+                    className="object-cover"
+                    unoptimized={!a.picture_medium}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate group-hover:text-bass-accent transition-colors">{a.name}</p>
@@ -121,10 +192,19 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
         </div>
       )}
 
-      {filtered.length === 0 && (
+      {filtered.length === 0 && !searching && (
         <div className="text-center py-20">
           <Users size={40} className="mx-auto text-gray-600 mb-4" />
-          <p className="text-gray-400">No artists found matching your criteria.</p>
+          <p className="text-gray-400">
+            {isSearchMode ? "No artists found on Deezer matching your search." : "No artists found matching your criteria."}
+          </p>
+        </div>
+      )}
+
+      {searching && filtered.length === 0 && (
+        <div className="text-center py-20">
+          <Loader2 size={32} className="mx-auto text-bass-accent animate-spin mb-4" />
+          <p className="text-gray-400">Searching Deezer...</p>
         </div>
       )}
     </div>

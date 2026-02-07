@@ -46,14 +46,12 @@ export const getRelated = async (id: number, n = 10) => {
 };
 
 /**
- * Get related artists filtered to only SA artists in our curated list.
- * Falls back to fetching full SA artist data for better recommendations.
+ * Get related artists filtered to only those in our curated SA list.
+ * Fetches extra from Deezer to maximize SA matches, then trims.
  */
 export const getRelatedSA = async (id: number, saIds: Set<number>, n = 6) => {
   try {
-    // Fetch more from Deezer to increase chance of SA artist matches
     const related = await getRelated(id, 50);
-    // Filter to only artists in our SA list
     const saRelated = related.filter((a) => saIds.has(a.id) && a.id !== id);
     return saRelated.slice(0, n);
   } catch {

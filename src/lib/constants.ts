@@ -2,21 +2,21 @@
 // ALL data (name, image, bio, albums) fetched live from Deezer API
 // IDs verified against https://www.deezer.com/artist/{ID} on 2026-02-07
 export const SA_ARTIST_IDS = [
-  8671236,    // Kabza De Small
-  1220981,    // Tyla (main canonical profile with full bio)
-  8907066,    // Nasty C
-  49541722,   // Black Coffee
-  11145336,   // Makhadzi
-  8355648,    // DJ Maphorisa
-  5895321,    // Cassper Nyovest (was 4860761 = J Balvin!)
-  1387344,    // Zakes Bantwini (was 5765438 = wrong artist)
-  10282494,   // Babes Wodumo
-  10695498,   // Sjava
-  163177647,  // Uncle Waffles (was 168995527 = wrong artist)
-  9635624,    // Focalistic
-  73551,      // Benjamin Dube (was 4495513 = wrong artist)
-  324473,     // OSKIDO (was 5245647 = wrong artist)
-  60344202,   // Nomcebo Zikode (was 6847498 = wrong artist)
+  8671236,    // Kabza De Small       — deezer.com/artist/8671236
+  1220981,    // Tyla                  — deezer.com/artist/1220981
+  8907066,    // Nasty C               — deezer.com/artist/8907066
+  49541722,   // Black Coffee          — deezer.com/artist/49541722
+  11145336,   // Makhadzi              — deezer.com/artist/11145336
+  8355648,    // DJ Maphorisa          — deezer.com/artist/8355648
+  5895321,    // Cassper Nyovest       — deezer.com/artist/5895321
+  1387344,    // Zakes Bantwini        — deezer.com/artist/1387344
+  10282494,   // Babes Wodumo          — deezer.com/artist/10282494
+  10695498,   // Sjava                 — deezer.com/artist/10695498
+  163177647,  // Uncle Waffles         — deezer.com/artist/163177647
+  11871785,   // Focalistic            — deezer.com/artist/11871785
+  73551,      // Benjamin Dube         — deezer.com/artist/73551
+  324473,     // OSKIDO                — deezer.com/artist/324473
+  60344202,   // Nomcebo Zikode        — deezer.com/artist/60344202
 ];
 
 // Genre tags we assign (Deezer doesn't always have SA genre info)
@@ -32,7 +32,7 @@ export const ARTIST_GENRES: Record<number, string> = {
   10282494: "Gqom",         // Babes Wodumo
   10695498: "Maskandi",     // Sjava
   163177647: "Amapiano",    // Uncle Waffles
-  9635624: "Amapiano",      // Focalistic
+  11871785: "Amapiano",     // Focalistic
   73551: "Gospel",          // Benjamin Dube
   324473: "Kwaito",         // OSKIDO
   60344202: "House",        // Nomcebo Zikode
