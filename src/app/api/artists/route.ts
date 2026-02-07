@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
-import { getArtist } from "@/lib/deezer";
-import { SA_ARTIST_IDS, ARTIST_GENRES } from "@/lib/constants";
+import { getArtist, getTopTracks, getAlbums, getRelatedSA } from "@/lib/deezer";
+import { ARTIST_GENRES, SA_ARTIST_ID_SET } from "@/lib/constants";
 
-export async function GET() {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const numId = parseInt(id, 10);
+  if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
   try {
-    const artists = await Promise.allSettled(SA_ARTIST_IDS.map((id) => getArtist(id)));
-    const data = artists
-      .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof getArtist>>> => r.status === "fulfilled")
-      .map((r) => ({ ...r.value, genre: ARTIST_GENRES[r.value.id] || "Other" }));
-    return NextResponse.json(data);
+    const [artist, topTracks, albums, related] = await Promise.all([
+      getArtist(numId),
+      getTopTracks(numId),
+      getAlbums(numId),
+      getRelatedSA(numId, SA_ARTIST_ID_SET, 6),
+    ]);
+    return NextResponse.json({
+      ...artist,
+      genre: ARTIST_GENRES[numId] || "Other",
+      topTracks,
+      albums,
+      related: related.map((r) => ({ ...r, genre: ARTIST_GENRES[r.id] || "Other" })),
+    });
   } catch {
-    return NextResponse.json({ error: "Failed to fetch artists" }, { status: 500 });
+    return NextResponse.json({ error: "Artist not found" }, { status: 404 });
   }
 }

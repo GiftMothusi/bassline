@@ -12,7 +12,18 @@ const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-disp
 export const metadata: Metadata = {
   title: "Bassline — South African Music & Culture",
   description: "Discover, Vote, Celebrate South African Music. The voice of the people.",
-  icons: { icon: "/favicon.png" },
+  icons: {
+    icon: [
+      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/favicon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

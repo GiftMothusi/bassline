@@ -1,5 +1,5 @@
-import { getArtist, getTopTracks, getAlbums, getRelated } from "@/lib/deezer";
-import { ARTIST_GENRES } from "@/lib/constants";
+import { getArtist, getTopTracks, getAlbums, getRelatedSA } from "@/lib/deezer";
+import { ARTIST_GENRES, SA_ARTIST_ID_SET } from "@/lib/constants";
 import ArtistDetailClient from "./ArtistDetailClient";
 import { notFound } from "next/navigation";
 
@@ -21,7 +21,7 @@ export default async function ArtistPage({ params }: { params: Promise<{ id: str
       getArtist(numId),
       getTopTracks(numId, 10),
       getAlbums(numId, 20),
-      getRelated(numId, 6),
+      getRelatedSA(numId, SA_ARTIST_ID_SET, 6),
     ]);
 
     return (
