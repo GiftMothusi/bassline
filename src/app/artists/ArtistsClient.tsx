@@ -5,7 +5,7 @@ import { Search, Grid3X3, List, Users, Loader2 } from "lucide-react";
 import ArtistCard from "@/components/ui/ArtistCard";
 import Link from "next/link";
 import Image from "next/image";
-import { GENRES, ARTIST_GENRES, SA_ARTIST_ID_SET } from "@/lib/constants";
+import { GENRES, ARTIST_GENRES, isSAArtist } from "@/lib/constants";
 import type { DzArtist } from "@/lib/deezer";
 
 type A = DzArtist & { genre: string };
@@ -31,7 +31,6 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Live Deezer search when user types 2+ chars
   const doSearch = useCallback(async (query: string) => {
     if (query.length < 2) {
       setSearchResults([]);
@@ -44,7 +43,7 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
       const json = await res.json();
       const results: A[] = (json.data || []).map((a: DzArtist) => ({
         ...a,
-        genre: ARTIST_GENRES[a.id] || (SA_ARTIST_ID_SET.has(a.id) ? "Other" : "International"),
+        genre: ARTIST_GENRES[a.id] || (isSAArtist(a.id) ? "Other" : "International"),
       }));
       setSearchResults(results);
     } catch {
@@ -64,13 +63,11 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [q, doSearch]);
 
-  // When searching, show search results; otherwise show curated SA artists
   const isSearchMode = q.length >= 2;
 
   const filtered = useMemo(() => {
     const source = isSearchMode ? searchResults : artists;
     let list = [...source];
-    // If not in search mode, apply local text filter
     if (!isSearchMode && q) {
       list = list.filter((a) => a.name.toLowerCase().includes(q.toLowerCase()));
     }
@@ -83,16 +80,13 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
 
   return (
     <div className="min-h-screen max-w-7xl mx-auto px-4 lg:px-8 py-8">
-      {/* Header */}
       <div className="mb-8">
         <span className="text-bass-accent text-xs uppercase tracking-widest font-medium">Directory</span>
         <h1 className="text-4xl font-display font-black mt-1">Artists</h1>
         <p className="text-gray-400 mt-2">Explore South Africa&apos;s finest — all data live from Deezer.</p>
       </div>
 
-      {/* Controls */}
       <div className="flex flex-col md:flex-row gap-4 mb-8">
-        {/* Search */}
         <div className="relative flex-1">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
           {searching && <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-bass-accent animate-spin" />}
@@ -103,7 +97,6 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
           />
         </div>
 
-        {/* Genre filter */}
         <select
           value={genre} onChange={(e) => setGenre(e.target.value)}
           className="bg-bass-surface border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-bass-accent/50 focus:outline-none appearance-none cursor-pointer"
@@ -111,7 +104,6 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
           {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
 
-        {/* Sort */}
         <select
           value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}
           className="bg-bass-surface border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-bass-accent/50 focus:outline-none appearance-none cursor-pointer"
@@ -121,7 +113,6 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
           <option value="albums">Most Albums</option>
         </select>
 
-        {/* View toggle */}
         <div className="flex bg-bass-surface border border-white/10 rounded-xl overflow-hidden">
           <button onClick={() => setView("grid")} className={`px-3 py-3 ${view === "grid" ? "bg-bass-accent/10 text-bass-accent" : "text-gray-400"}`}>
             <Grid3X3 size={18} />
@@ -132,7 +123,6 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
         </div>
       </div>
 
-      {/* Results count & mode indicator */}
       <div className="flex items-center gap-3 mb-6">
         <p className="text-sm text-gray-500">
           {filtered.length} artist{filtered.length !== 1 && "s"} found
@@ -144,7 +134,6 @@ export default function ArtistsClient({ artists }: { artists: A[] }) {
         )}
       </div>
 
-      {/* Grid view */}
       {view === "grid" ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
           {filtered.map((a, i) => (

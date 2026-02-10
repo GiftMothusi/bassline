@@ -1,21 +1,33 @@
 import { getArtist, getAlbums } from "@/lib/deezer";
-import { SA_ARTIST_IDS, ARTIST_GENRES } from "@/lib/constants";
+import { getTopArtists, ARTIST_GENRES } from "@/lib/constants";
 import NewsClient from "./NewsClient";
 
 export const metadata = { title: "News & Releases — Bassline" };
 
 interface Release {
-  id: number; title: string; artistName: string; artistId: number;
-  cover: string; coverBig: string; date: string; type: string; tracks: number; link: string; genre: string;
+  id: number;
+  title: string;
+  artistName: string;
+  artistId: number;
+  cover: string;
+  coverBig: string;
+  date: string;
+  type: string;
+  tracks: number;
+  link: string;
+  genre: string;
 }
 
 export default async function NewsPage() {
   const releases: Release[] = [];
+  const topSA = getTopArtists(25);
 
-  // Fetch recent albums from each SA artist
   const artistResults = await Promise.allSettled(
-    SA_ARTIST_IDS.map(async (id) => {
-      const [artist, albums] = await Promise.all([getArtist(id), getAlbums(id, 5)]);
+    topSA.map(async (sa) => {
+      const [artist, albums] = await Promise.all([
+        getArtist(sa.deezerId),
+        getAlbums(sa.deezerId, 5),
+      ]);
       return { artist, albums };
     })
   );
@@ -40,8 +52,9 @@ export default async function NewsPage() {
     }
   }
 
-  // Sort by release date (newest first)
-  releases.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  releases.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 
   return <NewsClient releases={releases} />;
 }
